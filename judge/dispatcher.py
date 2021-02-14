@@ -1,6 +1,5 @@
 import hashlib
 import json
-import logging
 from urllib.parse import urljoin
 
 import requests
@@ -16,8 +15,8 @@ from problem.utils import parse_problem_template
 from submission.models import JudgeStatus, Submission
 from utils.cache import cache
 from utils.constants import CacheKey
+from utils.ojlog import logger
 
-logger = logging.getLogger(__name__)
 
 
 # 继续处理在队列中的问题
@@ -36,9 +35,10 @@ class ChooseJudgeServer:
         self.server = None
 
     def __enter__(self) -> [JudgeServer, None]:
+        logger.info('ChooseJudgeServer....................')
         with transaction.atomic():
             servers = JudgeServer.objects.select_for_update().filter(is_disabled=False).order_by("task_number")
-            servers = [s for s in servers if s.status == "normal"]
+            #servers = [s for s in servers if s.status == "normal"]
             for server in servers:
                 if server.task_number <= server.cpu_core * 2:
                     server.task_number = F("task_number") + 1
@@ -95,6 +95,9 @@ class JudgeDispatcher(DispatcherBase):
         self.contest_id = self.submission.contest_id
         self.last_result = self.submission.result if self.submission.info else None
 
+        logger.info('self.submission')
+        logger.info(self.contest_id)
+
         if self.contest_id:
             self.problem = Problem.objects.select_related("contest").get(id=problem_id, contest_id=self.contest_id)
             self.contest = self.problem.contest
@@ -126,6 +129,7 @@ class JudgeDispatcher(DispatcherBase):
         language = self.submission.language
         sub_config = list(filter(lambda item: language == item["name"], SysOptions.languages))[0]
         spj_config = {}
+        logger.info('checking spj_code')
         if self.problem.spj_code:
             for lang in SysOptions.spj_languages:
                 if lang["name"] == self.problem.spj_language:
@@ -137,6 +141,8 @@ class JudgeDispatcher(DispatcherBase):
             code = f"{template['prepend']}\n{self.submission.code}\n{template['append']}"
         else:
             code = self.submission.code
+        
+        logger.info('checking ' + code)
 
         data = {
             "language_config": sub_config["config"],
@@ -154,6 +160,7 @@ class JudgeDispatcher(DispatcherBase):
 
         with ChooseJudgeServer() as server:
             if not server:
+                logger.info('not server')
                 data = {"submission_id": self.submission.id, "problem_id": self.problem.id}
                 cache.lpush(CacheKey.waiting_queue, json.dumps(data))
                 return

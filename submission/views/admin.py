@@ -4,6 +4,7 @@ from judge.tasks import judge_task
 from utils.api import APIView
 from ..models import Submission
 
+from utils.ojlog import logger
 
 class SubmissionRejudgeAPI(APIView):
     @super_admin_required
@@ -17,6 +18,9 @@ class SubmissionRejudgeAPI(APIView):
             return self.error("Submission does not exists")
         submission.statistic_info = {}
         submission.save()
-
+        
+        logger.info("start to send judge_task")
+        logger.info(judge_task)
         judge_task.send(submission.id, submission.problem.id)
+        logger.info("end send")
         return self.success()
