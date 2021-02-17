@@ -83,3 +83,10 @@ Modern browsers(chrome, firefox) and Internet Explorer 10+.
 ## License
 
 [MIT](http://opensource.org/licenses/MIT)
+
+
+导入一个问题：
+ python manage.py import_problem_by_cmd  "/home/xuan/www/data/oj_data/bailian.openjudge.cn/practice/practice-2663/" one
+导入多个问题：
+ python manage.py import_problem_by_cmd  "/home/xuan/www/data/oj_data/bailian.openjudge.cn/practice/" batch
+
